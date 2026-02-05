@@ -13,6 +13,7 @@ def fake_ai_response(content: str) -> str:
     time.sleep(1)  # 假装在思考
     return f"AI回复: {content}"
 
+
 create_db_and_tables()
 
 
