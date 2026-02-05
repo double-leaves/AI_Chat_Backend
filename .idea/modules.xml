@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Project_Synapse.iml" filepath="$PROJECT_DIR$/.idea/Project_Synapse.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../fastapi/.idea/fastapi.iml" filepath="$PROJECT_DIR$/../fastapi/.idea/fastapi.iml" />
     </modules>
   </component>
 </project>
