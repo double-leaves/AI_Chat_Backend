@@ -1,11 +1,11 @@
-from fastapi import FastAPI, Depends
-from sqlmodel import Session
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlmodel import Session, select
 from models import ChatMessageCreate, ChatMessageRead, ChatMessage, ChatSessionRead, ChatSessionCreate, ChatSession, \
     UserRead, UserCreate, User
 from database import get_session, create_db_and_tables
 import time
-
-from security import get_password_hash
+from security import get_password_hash, verify_password, create_access_token
 
 app = FastAPI()
 
@@ -19,7 +19,7 @@ def fake_ai_response(content: str) -> str:
 create_db_and_tables()
 
 
-# 创建用户
+# 用户注册
 @app.post("/register/", response_model=UserRead)
 def create_user(
     user_in: UserCreate,
@@ -34,6 +34,30 @@ def create_user(
     session.refresh(user)
 
     return user
+
+
+# 用户登录
+# 注意：这个接口不返回 UserRead，而是返回一个包含 token 的特定字典
+@app.post("/token")
+def login_for_access_token(
+        form_data: OAuth2PasswordRequestForm = Depends(),
+        session: Session = Depends(get_session)
+):
+    # form_data 里面包含了 form_data.username 和 form_data.password
+
+    # 第一步：去数据库找人 (Query)
+    statement = select(User).where(User.username == form_data.username)
+    user = session.exec(statement).first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=401,
+            detail="用户名或密码错误",  # 模糊的错误提示更安全
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    # 发手环 (Create Token)
+    access_token = create_access_token(data={"sub": user.username})
+    # 返回标准格式
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 # 创建新会话
@@ -77,4 +101,3 @@ def create_message(
     session.refresh(ai_message_db)
     # 第六步：返回 AI 的那条消息对象 (让前端显示)
     return ai_message_db
-
