@@ -1,9 +1,11 @@
 from fastapi import FastAPI, Depends
 from sqlmodel import Session
-from models import ChatMessageCreate, ChatMessageRead, ChatMessage, ChatSessionRead, ChatSessionCreate, ChatSession
+from models import ChatMessageCreate, ChatMessageRead, ChatMessage, ChatSessionRead, ChatSessionCreate, ChatSession, \
+    UserRead, UserCreate, User
 from database import get_session, create_db_and_tables
 import time
 
+from security import get_password_hash
 
 app = FastAPI()
 
@@ -17,6 +19,24 @@ def fake_ai_response(content: str) -> str:
 create_db_and_tables()
 
 
+# 创建用户
+@app.post("/register/", response_model=UserRead)
+def create_user(
+    user_in: UserCreate,
+    session=Depends(get_session)
+):
+    user = User(
+        username=user_in.username,
+        hashed_password=get_password_hash(user_in.password)
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    return user
+
+
+# 创建新会话
 @app.post("/chats/", response_model=ChatSessionRead)
 def create_session(session_in: ChatSessionCreate, session: Session = Depends(get_session)):
     session_db = ChatSession.model_validate(session_in)
@@ -26,16 +46,14 @@ def create_session(session_in: ChatSessionCreate, session: Session = Depends(get
     return session_db
 
 
+# 人机对话
 @app.post("/chats/{session_id}/messages/", response_model=ChatMessageRead)
 def create_message(
         session_id: int,
         message_in: ChatMessageCreate,
         session: Session = Depends(get_session)
 ):
-    # --- 你的任务区域开始 ---
-
     # 第一步：把用户说的话 (message_in.content) 变成数据库对象
-    # 注意：你需要手动填上 session_id 和 judge="user"
     message_db = ChatMessage(
         session_id=session_id,
         content=message_in.content,
@@ -48,7 +66,6 @@ def create_message(
     # 第三步：调用假 AI 获取回复
     ai_content = fake_ai_response(message_in.content)
     # 第四步：把 AI 的回复变成数据库对象
-    # 注意：session_id 是一样的，但 judge="ai"
     ai_message_db = ChatMessage(
         session_id=session_id,
         content=ai_content,
@@ -60,5 +77,4 @@ def create_message(
     session.refresh(ai_message_db)
     # 第六步：返回 AI 的那条消息对象 (让前端显示)
     return ai_message_db
-    # --- 你的任务区域结束 ---
 
