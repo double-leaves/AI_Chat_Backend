@@ -4,8 +4,8 @@ from sqlmodel import Session, select
 from models import ChatMessageCreate, ChatMessageRead, ChatMessage, ChatSessionRead, ChatSessionCreate, ChatSession, \
     UserRead, UserCreate, User
 from database import get_session, create_db_and_tables
+from security import get_password_hash, verify_password, create_access_token, get_current_user
 import time
-from security import get_password_hash, verify_password, create_access_token
 
 app = FastAPI()
 
@@ -62,8 +62,13 @@ def login_for_access_token(
 
 # 创建新会话
 @app.post("/chats/", response_model=ChatSessionRead)
-def create_session(session_in: ChatSessionCreate, session: Session = Depends(get_session)):
+def create_session(
+        session_in: ChatSessionCreate,
+        current_user: User = Depends(get_current_user),
+        session: Session = Depends(get_session)
+):
     session_db = ChatSession.model_validate(session_in)
+    session_db.user_id = current_user.id
     session.add(session_db)
     session.commit()
     session.refresh(session_db)

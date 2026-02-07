@@ -69,11 +69,10 @@ def get_current_user(
 
     # 查库找人
     statement = select(User).where(User.username == username)
-    user = session.exec(statement)
+    user = session.exec(statement).first()
+    if user is None:
+        raise credentials_exception
 
     return user
-
-
-
 
 
