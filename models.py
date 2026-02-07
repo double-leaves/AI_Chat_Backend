@@ -45,7 +45,7 @@ class ChatMessageBase(SQLModel):
 
 
 class ChatMessage(ChatMessageBase, table=True):
-    id: int = Field(default=None, primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
     session_id: Optional[int] = Field(default=None, foreign_key="chatsession.id")
     judge: str
 
